@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+bun.lock
+
+# Build
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+.codex-dev.*
+.lovable/
+.tanstack/
+
+# Database
+*.db
+*.sqlite
+
+# Old/Legacy directories
+backend_old/
+frontend_old/
+
+# Cache
+.cache/
+.next/

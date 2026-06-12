@@ -1,0 +1,42 @@
+# Backend .gitignore
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Environment
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Notebooks checkpoint
+.ipynb_checkpoints/
+
+# Scratch
+scratch/
+
+# Cache
+__pycache__/
+.pytest_cache/
+.mypy_cache/

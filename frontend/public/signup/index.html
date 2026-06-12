@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign Up - Entropy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../login/styles.css">
+  </head>
+  <body class="signup-page">
+    <div class="page">
+      <aside class="left" aria-hidden="true">
+        <img class="paper-wash paper-wash-rotated" src="../login/assets/720d43ab0f522c1c457e082999a02ea1d5fcbccd.png" alt="">
+        <img class="paper-wash paper-wash-wide" src="../login/assets/720d43ab0f522c1c457e082999a02ea1d5fcbccd.png" alt="">
+        <img class="team-illustration" src="../login/assets/team-cropped.png" alt="">
+        <img class="team-shadow" src="../login/assets/92d784b280fea203c407da74be3cd5b1338dd1d8.svg" alt="">
+        <img class="corner-scribble" src="../login/assets/stethoscope-figma-cropped.png" alt="">
+      </aside>
+
+      <main class="right">
+        <div class="container">
+          <div class="logo-wrap">
+            <img class="logo-icon" src="../login/assets/62b6799ce65a64f5570a5afed04258fd73ac5658.svg" alt="entropy icon">
+            <img class="logo" src="../login/assets/1eaea8dd16a06730f6db88e50c11362f67b29814.png" alt="entropy logo">
+          </div>
+
+          <h1 class="heading">Sign Up</h1>
+
+          <button class="btn oauth" type="button">
+            <img class="gicon" src="../login/assets/51ce36e4a9526430e36ce1219ec95b516ae53e83.svg" alt="google">
+            <span>Sign up with Google</span>
+          </button>
+
+          <div class="divider"><span>OR</span></div>
+
+          <form class="form" onsubmit="return false;">
+            <div class="input">
+              <input type="text" placeholder="Name" aria-label="Name" required>
+            </div>
+
+            <div class="input">
+              <input type="email" placeholder="Email" aria-label="Email" required>
+            </div>
+
+            <div class="input">
+              <input type="password" placeholder="Password" aria-label="Password" required>
+            </div>
+
+            <button class="btn submit" type="submit" data-loading-text="Signing up...">Sign Up</button>
+          </form>
+
+          <p class="signup">Already have an account? <a href="../login/index.html">Sign in</a></p>
+        </div>
+      </main>
+    </div>
+
+    <script src="../login/app.js"></script>
+  </body>
+</html>

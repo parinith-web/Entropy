@@ -1,0 +1,153 @@
+================================================================================
+MEDPULSE INDIA — DATA REQUIREMENTS FOR MAXIMUM PREDICTIVE ACCURACY
+================================================================================
+Document Version: 1.0 (June 2026)
+Target System: SQLite Warehouse / XGBoost Medical Surge Classifier
+Author: Antigravity AI Coding Assistant
+
+This document outlines every data source, API integration, frequency, and schema
+mapping required to transition the MedPulse India backend from simulated/estimated 
+data variables to 100% ground-truth real-world signals for absolute accuracy.
+
+================================================================================
+1. DYNAMIC HEALTHCARE ADMISSIONS & BED OCCUPANCY
+================================================================================
+* Current Status: Daily admitted counts, active patients, and ICU loads are simulated 
+  based on district population baselines and weather/AQI stress formulas.
+* Requirement: Real-time Electronic Health Record (EHR) integration and daily/weekly
+  public health statistics.
+
+- Source 1: Health Management Information System (HMIS) NHM Portal
+  - Portal: https://hmis.nhp.gov.in/#!/standardReports
+  - Type: Historical & Monthly Inpatient/Outpatient logs
+  - Fields needed: Total IPD Admissions, Total OPD Attendance, Beds Occupied, 
+    Beds Available, ICU Occupancy.
+  - Frequency: Monthly
+  - DB Mapping: hospital_logs (admitted_count, beds_occupied, icu_load)
+
+- Source 2: National Health Authority (NHA) PM-JAY / State Health Dashboards
+  - Portal: state-specific Ayushman Bharat/PM-JAY portals
+  - Type: REST API / Daily CSV feeds
+  - Fields needed: Daily hospital transaction claims, real-time bed occupancy buffers.
+  - Frequency: Daily (24-hour cycle)
+  - DB Mapping: hospital_logs.active_patients
+
+================================================================================
+2. REAL-TIME LOCAL AIR QUALITY INDEX (CPCB)
+================================================================================
+* Current Status: Air Quality Index (AQI) values are estimated using Copernicus 
+  global atmospheric models via the Open-Meteo Air Quality API.
+* Requirement: Real-time physical sensor data.
+
+- Source: Central Pollution Control Board (CPCB) Real-Time AQI API
+  - Portal: https://data.gov.in (CPCB Real-Time Air Quality Index API)
+  - Type: JSON REST API (requires API key)
+  - Fields needed: US-AQI (or Indian AQI scale), PM2.5, PM10, NO2, SO2, CO, O3,
+    Station Latitude, Station Longitude.
+  - Frequency: Every 3 Hours (or Hourly)
+  - DB Mapping: weather_aqi_logs (aqi, pm25, pm10, no2, so2)
+  - Implementation: KD-Tree nearest-neighbor interpolation to map CPCB stations
+    to the 549 district centroids.
+
+================================================================================
+3. LIVE EPIDEMIOLOGICAL OUTBREAK TRACKING (IDSP)
+================================================================================
+* Current Status: Infectious/epidemic alerts are set to static baselines.
+* Requirement: Active surveillance signals.
+
+- Source: Integrated Disease Surveillance Programme (IDSP) Weekly Reports
+  - Portal: https://idsp.mohfw.gov.in
+  - Type: Weekly PDF scraping / CSV portal
+  - Fields needed: Weekly cases of Dengue, Malaria, Typhoid, Cholera, Chikungunya,
+    and Acute Diarrheal Disease (ADD) per district.
+  - Frequency: Weekly
+  - DB Mapping: hospital_logs.epidemic_alert_score
+  - Impact: Mosquito/water-borne infections cause sudden 7-14 day lagged surges
+    in pediatric and general medicine wards.
+
+================================================================================
+4. REAL-TIME NATURAL DISASTER ALERTS & RIVER LEVEL MONITORS
+================================================================================
+* Current Status: Calamity risk is static (coastal=6, mountain=7, inland=3). Heavy
+  rainfall is measured, but active disasters are not identified.
+* Requirement: Live disaster warning overlay.
+
+- Source 1: India Meteorological Department (IMD) Warning API & NDMA Alerts
+  - Portals: https://mausam.imd.gov.in, https://ndma.gov.in, or GDACS API
+  - Type: GeoJSON alert feed / RSS
+  - Fields needed: Active Cyclone Tracks, Flash Flood warnings, Landslide hazard
+    warnings, Earthquake magnitude & epicenter coordinates.
+  - Frequency: Every 15-30 Minutes
+  - DB Mapping: regions.calamity_risk_index (dynamic warning boost)
+
+- Source 2: Central Water Commission (CWC) River Gauge Monitoring
+  - Portal: India Water Resources Information System (India-WRIS)
+  - Type: Live Sensor API
+  - Fields needed: River level (meters), Warning level (meters), Danger level (meters)
+  - Frequency: Hourly
+  - DB Mapping: regions.calamity_risk_index (risk score scaled as water level approaches danger level)
+
+================================================================================
+5. ENVIRONMENT & VECTOR BREEDING INDICES (ISRO BHUVAN / SATELLITE)
+================================================================================
+* Current Status: Vector breeding indices are static placeholders.
+* Requirement: Satellite-derived environmental indicators.
+
+- Source: ISRO Bhuvan / Copernicus Sentinel-2 / Google Earth Engine
+  - Portals: https://bhuvan.nrsc.gov.in, Copernicus API
+  - Type: GIS Raster / API
+  - Fields needed:
+    - NDWI (Normalized Difference Water Index) -> To detect standing water.
+    - NDVI (Normalized Difference Vegetation Index) -> To calculate vegetation density.
+    - LST (Land Surface Temperature) -> To pinpoint Urban Heat Island (UHI) zones.
+  - Frequency: Weekly / Bi-weekly
+  - DB Mapping: weather_aqi_logs.vector_index
+
+================================================================================
+6. POWER GRID STABILITY & INFRASTRUCTURE RELIABILITY
+================================================================================
+* Current Status: Power grid stability index is simulated at 0 (fully stable).
+* Requirement: Actual power outages logs.
+
+- Source: State DISCOMs / National Power Portal (NPP)
+  - Portal: State-level power distribution boards (e.g. BESCOM, MSEDCL, UPPCL)
+  - Type: Live load shedding alerts / outage logs
+  - Fields needed: Average load-shedding hours per day, transmission grid failures.
+  - Frequency: Daily
+  - DB Mapping: weather_aqi_logs.power_grid_stability
+  - Impact: Power outages during extreme summer heat waves prevent household 
+    and hospital air conditioning, rapidly accelerating heat exhaustion surges.
+
+================================================================================
+7. SOCIO-TEMPORAL DYNAMICS & MOBILITY INDICES
+================================================================================
+* Current Status: Public gathering scales are statically modeled or manual.
+* Requirement: Real-time population movement signals.
+
+- Source 1: Local District Administration Calendars & Election Commission
+  - Type: Web scrapers / manual administrative calendars
+  - Fields needed: Religious festivals (e.g., Kumbh Mela, Durga Puja, Rath Yatra),
+    political rallies, or state elections scheduled in the district.
+  - Frequency: Monthly / Weekly
+  - DB Mapping: hospital_logs.gathering_scale
+
+- Source 2: Anonymous Telecom Density / Mobility Reports
+  - Type: Commercial/telecom APIs or public transit volume indicators
+  - Fields needed: Inflow/outflow population density changes relative to baseline.
+  - Frequency: Daily
+  - DB Mapping: regions.migration_index (dynamic scaling)
+
+================================================================================
+8. UPDATED STATIC CENSUS PROJECTIONS
+================================================================================
+* Current Status: Base populations and age ratios are bound to Census 2011 (15 years old).
+* Requirement: Demographics corrected for urbanization.
+
+- Source: NITI Aayog Annual Population Projections / Census 2021 (when available)
+  - Portal: https://niti.gov.in
+  - Type: CSV/Excel publications
+  - Fields needed: Projected district population, projected elderly ratio (>60 years),
+    projected child ratio (<5 years), and latest urbanization percentage.
+  - Frequency: Annual
+  - DB Mapping: regions (population, elderly_ratio, child_ratio, density)
+================================================================================
