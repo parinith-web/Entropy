@@ -25,14 +25,15 @@ export function persistEmailAuth(email: string, name?: string) {
   persistAuthSession({ email, name: resolvedName });
 }
 
-export async function verifyGoogleDevToken(): Promise<{ email: string; name: string }> {
+export async function verifyGoogleToken(token: string): Promise<{ email: string; name: string }> {
   const res = await fetch(`${API_BASE_URL}/api/auth/google-verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token: "dev-token" }),
+    body: JSON.stringify({ token }),
   });
   if (!res.ok) throw new Error("Auth failed");
   const data = await res.json();
   if (data.status !== "success" || !data.user) throw new Error("Invalid response");
   return { email: data.user.email, name: data.user.name };
 }
+
