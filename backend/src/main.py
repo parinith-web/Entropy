@@ -347,6 +347,26 @@ def trigger_pipeline(
     return {"status": "triggered", "timestamp": datetime.utcnow().isoformat() + "Z"}
 
 
+@app.post("/api/database/seed", tags=["Database"])
+def trigger_database_seed(
+    background_tasks: BackgroundTasks,
+    x_pipeline_secret: str = Header(None),
+):
+    """
+    Trigger a one-time database seeding of regions, health datasets, and 30-day historical logs.
+    Protected by the PIPELINE_SECRET environment variable.
+    """
+    if not PIPELINE_SECRET:
+        raise HTTPException(status_code=503, detail="Database seeding trigger not configured (PIPELINE_SECRET not set).")
+    if x_pipeline_secret != PIPELINE_SECRET:
+        raise HTTPException(status_code=401, detail="Unauthorized.")
+    
+    from app.core.seed_db import run_seeding
+    background_tasks.add_task(run_seeding)
+    return {"status": "seeding_triggered", "message": "Database seeding pipeline started in background."}
+
+
+
 @app.get("/api/dashboard/hospitalized")
 def get_hospitalized_strength(view: str = Query("district", description="Aggregation level: 'district' or 'state'"), db: Session = Depends(get_db)):
     """
