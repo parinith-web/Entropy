@@ -1,6 +1,6 @@
 import { type Region, type RiskDriver, type Infrastructure, type TrendPoint } from "../../data/regions";
 
-export const API_BASE_URL = "http://localhost:8000";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const DB_TO_FE_STATES: Record<string, string> = {
   "uttar pradesh": "Uttar Pradesh",
