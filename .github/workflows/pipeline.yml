@@ -1,0 +1,28 @@
+name: 3-Hour Medical Surge Prediction Pipeline
+
+on:
+  schedule:
+    - cron: '0 */3 * * *' # Runs every 3 hours (at 00:00, 03:00, 06:00, etc.)
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions UI
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Prediction Pipeline
+        run: |
+          if [ -z "${{ secrets.MEDPULSE_API_URL }}" ]; then
+            echo "Error: MEDPULSE_API_URL secret is not set."
+            exit 1
+          fi
+          if [ -z "${{ secrets.PIPELINE_SECRET }}" ]; then
+            echo "Error: PIPELINE_SECRET secret is not set."
+            exit 1
+          fi
+          
+          echo "Triggering pipeline at ${{ secrets.MEDPULSE_API_URL }}/api/pipeline/trigger..."
+          
+          curl -f -X POST "${{ secrets.MEDPULSE_API_URL }}/api/pipeline/trigger" \
+            -H "Content-Type: application/json" \
+            -H "X-Pipeline-Secret: ${{ secrets.PIPELINE_SECRET }}" \
+            -d '{}'

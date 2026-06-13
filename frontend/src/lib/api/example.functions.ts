@@ -1,22 +1,14 @@
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
+// This file previously contained a createServerFn() example (TanStack Start server function).
+// createServerFn is a TanStack Start / SSR-only API and is not available in SPA mode.
+// The example has been replaced with a plain client-side fetch pattern for reference.
 
-import { getServerConfig } from "../config.server";
-
-// Example createServerFn. Server-side handler invoked from the client:
-//   const result = await getGreeting({ data: { name: "Ada" } })
-// The .handler body runs server-only — imports used only inside it (like
-// .server.ts modules) are tree-shaken from the client bundle. Module-level
-// code here still ships to the client; for truly server-only helpers, put
-// them in a .server.ts file. Use this pattern instead of Supabase Edge
-// Functions for server logic.
-
-export const getGreeting = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ name: z.string().min(1) }))
-  .handler(async ({ data }) => {
-    const config = getServerConfig();
-    return {
-      greeting: `Hello, ${data.name}!`,
-      mode: config.nodeEnv ?? "unknown",
-    };
-  });
+export async function getGreeting(name: string): Promise<{ greeting: string }> {
+  // In SPA mode, all server communication goes through the FastAPI backend.
+  // Example: call your FastAPI backend instead of a server function.
+  // const res = await fetch(`${import.meta.env.VITE_API_URL}/api/greet`, {
+  //   method: "POST",
+  //   body: JSON.stringify({ name }),
+  // });
+  // return res.json();
+  return { greeting: `Hello, ${name}!` };
+}

@@ -3,10 +3,34 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 import os
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "medpulse.db")
-DATABASE_URL = f"sqlite:///{DB_PATH}"
+# ---------------------------------------------------------------------------
+# Database URL resolution
+#   Production (Render): set DATABASE_URL env var to the Neon PostgreSQL URL.
+#   Development (local):  falls back to a local SQLite file next to src/.
+# ---------------------------------------------------------------------------
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+if DATABASE_URL:
+    # Neon (and some other providers) return "postgres://..." which SQLAlchemy
+    # requires to be "postgresql://...".
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,   # reconnect after idle/network drops
+        pool_size=5,
+        max_overflow=10,
+    )
+else:
+    # Local SQLite fallback — keep check_same_thread=False for the background
+    # pipeline thread that also uses this engine.
+    DB_PATH = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "medpulse.db",
+    )
+    DATABASE_URL = f"sqlite:///{DB_PATH}"
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

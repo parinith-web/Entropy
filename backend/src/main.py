@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Header, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
@@ -43,14 +43,23 @@ def get_effective_state(state: str, district: str) -> str:
         return "LADAKH"
     return s
 
-# Allow CORS for React frontend
+# CORS — in production set ALLOWED_ORIGINS to a comma-separated list of allowed
+# origins (e.g. "https://your-app.vercel.app"). Falls back to * for local dev.
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", "*")
+ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()] or ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Pipeline trigger secret — set via PIPELINE_SECRET env var in production.
+# When set, the background scheduler thread is disabled and GitHub Actions
+# calls /api/pipeline/trigger every 3 hours instead.
+PIPELINE_SECRET = os.environ.get("PIPELINE_SECRET", "")
 
 # Last pipeline run timestamp (real time)
 LAST_PIPELINE_RUN_TIME = None
@@ -274,14 +283,69 @@ def startup_event():
             if well_count == 0:
                 simulate_daily_wellness(db, latest_ts.date())
                 
-        # 3. Start real-time 3-hour pipeline scheduler thread
-        threading.Thread(target=run_pipeline_loop, daemon=True).start()
+        # 3. Start real-time 3-hour pipeline scheduler thread (dev only).
+        # In production (when PIPELINE_SECRET is set), GitHub Actions triggers
+        # the pipeline via POST /api/pipeline/trigger every 3 hours instead,
+        # so we skip spawning the daemon thread.
+        if PIPELINE_SECRET:
+            print("Production mode: pipeline scheduling handled by GitHub Actions → /api/pipeline/trigger")
+        else:
+            print("Dev mode: starting background thread for 3-hour pipeline scheduling.")
+            threading.Thread(target=run_pipeline_loop, daemon=True).start()
     except Exception as e:
         print(f"Error checking warehouse assets or starting simulation: {e}")
     finally:
         db.close()
 
 # --- API ENDPOINTS ---
+
+@app.get("/health", tags=["Health"])
+def health_check():
+    """
+    Health check endpoint for Render.
+    Returns 200 OK when the service is running.
+    """
+    return {"status": "ok", "service": "medpulse-api"}
+
+
+def _run_single_pipeline_cycle():
+    """
+    Executes one 3-hour pipeline cycle: fetch weather/AQI for all districts,
+    run ML predictions, store to DB. Called by the /api/pipeline/trigger endpoint
+    from GitHub Actions in production.
+    """
+    global LAST_PIPELINE_RUN_TIME
+    db = SessionLocal()
+    try:
+        pipeline_timestamp = datetime.now()
+        print(f"[Triggered] Running pipeline at: {pipeline_timestamp}")
+        simulate_new_observation(db, pipeline_timestamp)
+        if pipeline_timestamp.hour < 3:
+            simulate_daily_wellness(db, (pipeline_timestamp - timedelta(days=1)).date())
+        LAST_PIPELINE_RUN_TIME = pipeline_timestamp
+        print(f"[Triggered] Pipeline complete.")
+    except Exception as e:
+        print(f"[Triggered] Pipeline error: {e}")
+    finally:
+        db.close()
+
+
+@app.post("/api/pipeline/trigger", tags=["Pipeline"])
+def trigger_pipeline(
+    background_tasks: BackgroundTasks,
+    x_pipeline_secret: str = Header(None),
+):
+    """
+    Trigger a 3-hour pipeline cycle from an external scheduler (GitHub Actions).
+    Protected by the PIPELINE_SECRET environment variable.
+    """
+    if not PIPELINE_SECRET:
+        raise HTTPException(status_code=503, detail="Pipeline trigger not configured (PIPELINE_SECRET not set).")
+    if x_pipeline_secret != PIPELINE_SECRET:
+        raise HTTPException(status_code=401, detail="Unauthorized.")
+    background_tasks.add_task(_run_single_pipeline_cycle)
+    return {"status": "triggered", "timestamp": datetime.utcnow().isoformat() + "Z"}
+
 
 @app.get("/api/dashboard/hospitalized")
 def get_hospitalized_strength(view: str = Query("district", description="Aggregation level: 'district' or 'state'"), db: Session = Depends(get_db)):

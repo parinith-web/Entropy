@@ -1,0 +1,10 @@
+notebooks/
+scratch/
+*.db
+*.sqlite
+__pycache__/
+*.pyc
+.env
+.git/
+*.ipynb
+*.log
